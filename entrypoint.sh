@@ -22,21 +22,21 @@ curl -s $ARGOCD_SERVER/api/v1/applications --cookie "argocd.token=$ARGOCD_TOKEN"
 
 # Get revision a.k.a sha commit and ArgoCD State of the app
 REVISION=$(jq -r '.items[] | select( .metadata.name == "'$ARGOCD_APP'") | .status.operationState.operation.sync.revision' tmp.json)
-REVISION_STATE=$(jq -r '.items[] | select( .metadata.name == "'$ARGOCD_APP'") | .status.operationState.phase' tmp.json)
+REVISION_STATE=$(jq -r '.items[] | select( .metadata.name == "'$ARGOCD_APP'") | .status.health.status' tmp.json)
 
 # Map ArgoCD state to GitHub state
-# Phases taken from https://github.com/argoproj/argo-cd/blob/master/ui/src/app/shared/models.ts#L45
+# Health states taken from https://github.com/argoproj/argo-cd/blob/master/ui/src/app/applications/components/applications-list/applications-summary.tsx#L8
 case $REVISION_STATE in
-    Running)
+    Progressing)
         GITHUB_STATE="pending"
     ;;
-    Error)
+    Degraded)
         GITHUB_STATE="error"
     ;;
-    Failed)
+    Missing)
         GITHUB_STATE="failure"
     ;;
-    Succeeded)
+    Healthy)
         GITHUB_STATE="success"
     ;;
     *)
