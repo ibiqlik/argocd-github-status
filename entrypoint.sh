@@ -5,6 +5,7 @@
 #     ARGOCD_ADMIN_PASS
 #     ARGOCD_APP
 #     ARGOCD_APP_URL
+#     ARGOCD_HOOKSTATE
 #     GITHUB_OWNER
 #     GITHUB_REPO
 #     GITHUB_TOKEN
@@ -20,27 +21,21 @@ ARGOCD_TOKEN=$(curl -s $ARGOCD_SERVER/api/v1/session -d $'{"username":"admin","p
 # curl -s $ARGOCD_SERVER/api/v1/applications -H "Authorization: Bearer $ARGOCD_TOKEN" > tmp.json
 curl -s $ARGOCD_SERVER/api/v1/applications --cookie "argocd.token=$ARGOCD_TOKEN" > tmp.json
 
-# Get revision a.k.a sha commit and ArgoCD State of the app
+# Get revision a.k.a sha commit
 REVISION=$(jq -r '.items[] | select( .metadata.name == "'$ARGOCD_APP'") | .status.operationState.operation.sync.revision' tmp.json)
-REVISION_STATE=$(jq -r '.items[] | select( .metadata.name == "'$ARGOCD_APP'") | .status.health.status' tmp.json)
 
-# Map ArgoCD state to GitHub state
-# Health states taken from https://github.com/argoproj/argo-cd/blob/master/ui/src/app/applications/components/applications-list/applications-summary.tsx#L8
-case $REVISION_STATE in
-    Progressing)
+case $ARGOCD_HOOKSTATE in
+    PreSync)
         GITHUB_STATE="pending"
     ;;
-    Degraded)
+    SyncFail)
         GITHUB_STATE="error"
     ;;
-    Missing)
-        GITHUB_STATE="failure"
-    ;;
-    Healthy)
+    PostSync)
         GITHUB_STATE="success"
     ;;
     *)
-        GITHUB_STATE="" # Not sure how to deal here
+        GITHUB_STATE="failure" # Not sure how to deal here
     ;;
 esac
 

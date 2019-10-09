@@ -23,6 +23,8 @@ spec:
       - name: github-status-post
         image: ilirbekteshi/argocd-github-status
         env:
+          - name: ARGOCD_HOOKSTATE
+            value: {{ $hook }}
           - name: ARGOCD_SERVER
             value: {{ $.Values.argocd.url }}
           - name: ARGOCD_APP
