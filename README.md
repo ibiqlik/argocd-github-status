@@ -2,12 +2,46 @@
 
 To be used with ArgoCD Hooks for settings commit status on GitHub
 
-Helm templates
+## Helm templates
 
-`githubstatus.yaml`
+### `values.yaml`
+
+```
+argocd:
+  enabled: true
+  namespace:
+  url:
+  appName:
+  github:
+    owner:
+    repo:
+    hooks:
+      - PostSync
+      - PreSync
+      - SyncFail
+...
+```
+
+### `secrets.yaml`
+
+Provide either `argocdAdminPass` or `argocdToken` but recommended if you create a `GET` only Role in ArgoCD and static token.
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argo-hook-secrets
+  namespace: {{ .Values.namespace }}
+stringData:
+  argocdAdminPass: ""
+  argocdToken: ""
+  githubToken: ""
+```
+
+### `githubstatus.yaml`
 ```
 {{- if .Values.argocd.enabled }}
-{{- range $hook := $.Values.argocd.hooks }}
+{{- range $hook := $.Values.argocd.github.hooks }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -29,17 +63,11 @@ spec:
             value: {{ $.Values.argocd.url }}
           - name: ARGOCD_APP
             value: {{ $.Values.argocd.appName }}
-          - name: ARGOCD_APP_URL
-            value: {{ printf "%s/applications/%s" $.Values.argocd.url $.Values.argocd.appName | quote }}
-          - name: ARGOCD_ADMIN_PASS
+          - name: ARGOCD_TOKEN
             valueFrom:
               secretKeyRef:
                 name: argo-hook-secrets
-                key: argocdAdminPass
-          - name: GITHUB_OWNER
-            value: {{ $.Values.argocd.github.owner }}
-          - name: GITHUB_REPO
-            value: {{ $.Values.argocd.github.repo }}
+                key: argocdToken
           - name: GITHUB_TOKEN
             valueFrom:
               secretKeyRef:
@@ -50,33 +78,4 @@ spec:
 ---
 {{- end }}
 {{- end }}
-```
-
-`secrets.yaml`
-```
-apiVersion: v1
-kind: Secret
-metadata:
-  name: argo-hook-secrets
-  namespace: {{ .Values.namespace }}
-stringData:
-  argocdAdminPass: ""
-  githubToken: ""
-```
-
-`values.yaml`
-```
-argocd:
-  enabled: true
-  namespace:
-  url:
-  appName:
-  github:
-    owner:
-    repo:
-  hooks:
-    - PostSync
-    - PreSync
-    - SyncFail
-...
 ```
