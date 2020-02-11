@@ -66,7 +66,8 @@ if [ -z "$GITHUB_STATE" ] && [ -z "$REVISION" ]; then
     exit 1
 fi
 
-curl https://api.github.com/repos/$REPO_OWNER/$REPO/statuses/$REVISION?access_token=$GITHUB_TOKEN \
+curl https://api.github.com/repos/$REPO_OWNER/$REPO/statuses/$REVISION \
     -H "Content-Type: application/json" \
+    -H "Authorization: token $GITHUB_TOKEN" \
     -X POST \
     -d "{\"state\": \"$GITHUB_STATE\", \"description\": \"ArgoCD\", \"target_url\": \"$ARGOCD_APP_URL\", \"context\": \"continuous-delivery/$ARGOCD_APP\"}"
